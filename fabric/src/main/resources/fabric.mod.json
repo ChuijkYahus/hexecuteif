@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "hexecuteif",
+  "version": "${version}",
+  "name": "Hex Execute If",
+  "description": "An addon that adds the \"execute if\" pattern.",
+  "authors": [
+    "N08I40K"
+  ],
+  "contact": {
+    "homepage": "https://n08i40k.github.io/HexecuteIf",
+    "sources": "https://github.com/N08I40K/HexecuteIf"
+  },
+  "license": "MIT",
+  "icon": "icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "ru.n08i40k.hexecuteif.fabric.HexecuteIfFabric"
+    ],
+    "client": [
+      "ru.n08i40k.hexecuteif.fabric.HexecuteIfClientFabric"
+    ],
+    "modmenu": [
+      "ru.n08i40k.hexecuteif.fabric.interop.ModMenuInterop"
+    ]
+  },
+  "mixins": [
+    "hexecuteif-common.mixins.json",
+    "hexecuteif.mixins.json"
+  ],
+  "depends": {
+    "minecraft": ">=${minecraftVersion}",
+    "fabricloader": ">=${fabricLoaderVersion}",
+    "fabric-api": "*",
+    "fabric-language-kotlin": ">=${fabricKotlinVersion}",
+    "architectury": ">=${architecturyVersion}",
+    "hexcasting": ">=${hexcastingVersion}"
+  }
+}
