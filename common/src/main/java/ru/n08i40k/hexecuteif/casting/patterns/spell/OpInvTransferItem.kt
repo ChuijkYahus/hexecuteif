@@ -6,6 +6,7 @@ import at.petrak.hexcasting.api.spell.casting.CastingContext
 import at.petrak.hexcasting.api.spell.iota.DoubleIota
 import at.petrak.hexcasting.api.spell.iota.Iota
 import at.petrak.hexcasting.api.spell.mishaps.MishapInvalidIota
+import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
 import ru.n08i40k.hexecuteif.casting.patterns.utils.InventoryWrap
@@ -31,24 +32,29 @@ object OpInvTransferItem : SpellAction {
         val itemCount = args.getIntBetween(4, 1, 64, argc)
 
         // validate source
-        val sourceItemStack = sourceInventoryWrap.getItem(sourceSlotIdx)
+        val sourceItemStack = when (sourceInventoryWrap) {
+            is InventoryWrap.Container -> sourceInventoryWrap.container.getItem(sourceSlotIdx)
+            is InventoryWrap.Inventory -> sourceInventoryWrap.inventory.getItem(sourceSlotIdx)
+        }
         if (sourceItemStack.isEmpty) throw MishapInvalidIota.of(
             DoubleIota(sourceSlotIdx.toDouble()), 3, "slot.not_empty", sourceSlotIdx
         )
 
         if (itemCount > sourceItemStack.count)
-            throw MishapInvalidIota.of(
-                DoubleIota(sourceSlotIdx.toDouble()), 0, "double.between", 1, sourceItemStack.count
-            )
+            throw MishapInvalidIota.of(DoubleIota(sourceSlotIdx.toDouble()), 0, "double.between", 1, sourceItemStack.count)
 
         // validate target
-        val targetItemStack = targetInventoryWrap.getItem(targetSlotIdx)
-        if (!targetItemStack.isEmpty) throw MishapInvalidIota.of(
+        val targetItemStackEmpty: Boolean = when (targetInventoryWrap) {
+            is InventoryWrap.Container -> targetInventoryWrap.container.getItem(targetSlotIdx).isEmpty
+            is InventoryWrap.Inventory -> targetInventoryWrap.inventory.getItem(targetSlotIdx).isEmpty
+        }
+
+        if (!targetItemStackEmpty) throw MishapInvalidIota.of(
             DoubleIota(sourceSlotIdx.toDouble()),
             1,
             "slot.empty",
             targetSlotIdx,
-            targetItemStack.displayName
+            sourceItemStack.displayName
         )
 
         val position: Vec3 = when (sourceInventoryWrap) {
@@ -60,7 +66,7 @@ object OpInvTransferItem : SpellAction {
             is InventoryWrap.Inventory -> sourceInventoryWrap.inventory.player.position()
         }
 
-        val mediaAmount = HexConfig.common().shardMediaAmount()
+        val mediaAmount = HexConfig.common().shardMediaAmount();
         val amounts =
             sourceInventoryWrap.mediaMultiplier(ctx.caster) * mediaAmount + targetInventoryWrap.mediaMultiplier(ctx.caster) * mediaAmount
 
@@ -79,24 +85,21 @@ object OpInvTransferItem : SpellAction {
         val itemCount: Int
     ) : RenderedSpell {
         override fun cast(ctx: CastingContext) {
-            val sourceItemStack = sourceInventoryWrap.getItem(sourceSlotIdx)
-            val newItemStack = sourceItemStack.copy()
+            val sourceItemStack = when (sourceInventoryWrap) {
+                is InventoryWrap.Container -> sourceInventoryWrap.container.getItem(sourceSlotIdx).copy()
+                is InventoryWrap.Inventory -> sourceInventoryWrap.inventory.getItem(sourceSlotIdx).copy()
+            }
 
-            sourceItemStack.count = newItemStack.count - itemCount
-            newItemStack.count = itemCount
+            when (sourceInventoryWrap) {
+                is InventoryWrap.Container -> sourceInventoryWrap.container.getItem(sourceSlotIdx)
+                is InventoryWrap.Inventory -> sourceInventoryWrap.inventory.getItem(sourceSlotIdx)
+            }.count = sourceItemStack.count - itemCount
+
+            sourceItemStack.count = itemCount
 
             when (targetInventoryWrap) {
-                is InventoryWrap.Container -> targetInventoryWrap.container.setItem(targetSlotIdx, newItemStack)
-                is InventoryWrap.Inventory -> {
-                    val targetInventory = targetInventoryWrap.inventory
-
-                    if (targetSlotIdx == 36)
-                        targetInventory.offhand[0] = newItemStack
-                    else if (targetSlotIdx > 36)
-                        targetInventory.armor[targetSlotIdx - 37] = newItemStack
-                    else
-                        targetInventory.setItem(targetSlotIdx, newItemStack)
-                }
+                is InventoryWrap.Container -> targetInventoryWrap.container.setItem(targetSlotIdx, sourceItemStack)
+                is InventoryWrap.Inventory -> targetInventoryWrap.inventory.setItem(targetSlotIdx, sourceItemStack)
             }
         }
 

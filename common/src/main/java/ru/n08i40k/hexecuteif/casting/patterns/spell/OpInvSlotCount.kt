@@ -5,6 +5,7 @@ import at.petrak.hexcasting.api.spell.asActionResult
 import at.petrak.hexcasting.api.spell.casting.CastingContext
 import at.petrak.hexcasting.api.spell.iota.Iota
 import ru.n08i40k.hexecuteif.casting.patterns.MediaAction
+import ru.n08i40k.hexecuteif.casting.patterns.utils.InventoryWrap
 import ru.n08i40k.hexecuteif.casting.patterns.utils.assertInventoryWrapInRange
 import ru.n08i40k.hexecuteif.casting.patterns.utils.getInventoryWrap
 
@@ -17,7 +18,15 @@ object OpInvSlotCount : MediaAction {
         inventoryWrap.assertAccess(ctx.caster)
         ctx.assertInventoryWrapInRange(inventoryWrap)
 
-        val slotCount = inventoryWrap.getSize()
+        val slotCount = when (inventoryWrap) {
+            is InventoryWrap.Inventory -> {
+                inventoryWrap.inventory.containerSize
+            }
+
+            is InventoryWrap.Container -> {
+                inventoryWrap.container.containerSize
+            }
+        }
 
         return Pair(
             slotCount.asActionResult,
